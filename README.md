@@ -82,7 +82,8 @@ path("/pets/{id}") {
             }
         }
   /* .. more APIs .. */
-}```
+}
+```
 
 ## Avoiding DRY
 
