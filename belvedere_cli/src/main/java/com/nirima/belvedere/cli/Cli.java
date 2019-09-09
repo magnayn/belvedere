@@ -1,15 +1,15 @@
 package com.nirima.belvedere.cli;
 
-import com.nirima.openapi.dsl.DSLExec;
-import io.swagger.util.Yaml;
-import io.swagger.v3.oas.models.OpenAPI;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
-import org.kohsuke.args4j.Option;
+import org.kohsuke.args4j.spi.SubCommand;
+import org.kohsuke.args4j.spi.SubCommandHandler;
+import org.kohsuke.args4j.spi.SubCommands;
 
-import java.io.File;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,18 +17,20 @@ import static org.kohsuke.args4j.OptionHandlerFilter.ALL;
 
 public class Cli {
 
-    @Option(name="-f", aliases="--file", usage="Fully qualified path and name of file.", required=true)
-    private File in;
 
-    @Option(name="-o",usage="output to this file",metaVar="OUTPUT")
-    private File out = new File(".");
 
     public static void main(String[] args) throws IOException {
         new Cli().doMain(args);
     }
 
-    @Argument
-    private List<String> arguments = new ArrayList<String>();
+    @Argument(required=true,index=0,metaVar="action",usage="subcommands, e.g., {search|modify|delete}",handler= SubCommandHandler.class)
+    @SubCommands({
+            @SubCommand(name="convert",impl=ConvertCommand.class),
+            @SubCommand(name="reverse",impl=ReverseCommand.class),
+            @SubCommand(name="validate",impl=ValidateCommand.class),
+    })
+    protected Command action;
+    
 
     public void doMain(String[] args) throws IOException {
         CmdLineParser parser = new CmdLineParser(this);
@@ -47,12 +49,8 @@ public class Cli {
 
             // Convert it
             //DSLExec dsl = new DSLExec(getClass().getResource("test.api"));
-            DSLExec dsl = new DSLExec(in.toURI().toURL());
 
-            OpenAPI spec = dsl.run();
-
-            Yaml.prettyPrint(spec);
-
+            action.execute();
 
 
         } catch( CmdLineException e ) {
@@ -71,5 +69,14 @@ public class Cli {
             return;
         }
 
+    }
+
+    public void convert() throws MalformedURLException {
+
+    }
+
+    public void reverse() throws JsonProcessingException, MalformedURLException {
+
+        
     }
 }
