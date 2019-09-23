@@ -6,7 +6,10 @@ class APIValidation {
 
 
     public void validate(DSLContext ctx, OpenAPI api) {
-        Set<String> s = api.getComponents().getSchemas().keySet();
+        Set<String> s = api.getComponents()?.getSchemas()?.keySet();
+
+        if( s == null )
+            return;
 
         s = s.collect() { return "#/components/schemas/${it}".toString() };
 

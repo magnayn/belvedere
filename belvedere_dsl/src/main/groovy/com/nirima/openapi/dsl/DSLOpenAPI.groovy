@@ -530,9 +530,12 @@ class DSLParameter extends DSLItem<Parameter> {
     //}
 
     DSLParameter style(String style) {
-
         self.setStyle(Parameter.StyleEnum.valueOf(style.toUpperCase()));
+        return this;
+    }
 
+    DSLParameter example(String example) {
+        self.setExample(example);
         return this;
     }
 }
@@ -580,6 +583,11 @@ class DSLSchema
 
     DSLSchema example(String value) {
         self.setExample(value);
+        return this;
+    }
+
+    DSLSchema pattern(String pattern) {
+        self.setPattern(pattern);
         return this;
     }
 
@@ -670,7 +678,10 @@ class DSLSchema
         context.seenSchema(name, s.self);
 
         // Don't believe it's neccessary to process the closure
-        //s.process(c);
+        // This is required:
+        // schema(foo:String) { description "foo" }
+        // inside a schema so need to process the parts inside.
+        s.process(c);
 
         self.addProperties(name, s.self);
 
