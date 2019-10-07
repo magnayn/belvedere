@@ -115,7 +115,7 @@ public class DSLItem<T> {
 
     def propertyMissing(String name, Object value) {
 
-        println "     set ${name}=${value} on ${this}"
+        //println "     set ${name}=${value} on ${this}"
 
         try {
 
@@ -135,7 +135,7 @@ public class DSLItem<T> {
             throw ex;
         }
 
-        println "     done set ${name}=${value} on ${this}"
+        //println "     done set ${name}=${value} on ${this}"
 
     }
 

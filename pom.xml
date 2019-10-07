@@ -28,4 +28,12 @@
         </pluginManagement>
     </build>
 
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>GitHub magnayn Apache Maven Packages</name>
+            <url>https://maven.pkg.github.com/magnayn/belvedere</url>
+        </repository>
+    </distributionManagement>
+
 </project>
