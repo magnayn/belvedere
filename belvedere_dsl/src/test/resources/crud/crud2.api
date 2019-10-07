@@ -1,6 +1,6 @@
 package crud
 
-// Test we can create sub-paths
+// Test we can call a common function and that it can be parameterised.
 
 api {
     openapi "3.0.2"
@@ -9,8 +9,18 @@ api {
     tag("Reference Data") {}
     tag("Mappings") {}
 
+    id_parameter = { name ->
+
+        parameter(id: String, in: 'path') {
+            description "The ID of the ${name}"
+            example "2CBC7FF9-38FB-4F0A-835A-324D9CF4800C"
+        }
+
+    }
 
     path("/mappingSets") {
+
+
 
         operation(OperationType.GET, 'getMappingSets') {
             description "Return a list of mapping sets that you may utilise"
@@ -25,14 +35,16 @@ api {
     }
 
     path("/mappingSets/{id}") {
+
+
+
         operation(OperationType.GET, 'getMappingSetById') {
             description "Get a mapping set by ID"
             tags "Mappings"
 
-            parameter(id: String, in: 'path') {
-                description "The ID of the vocabulary type"
-                example "EB7659C5-6AD3-4C1F-8F3F-A5DB1A5E1440"
-            }
+            evaluate(id_parameter, 'hello');
+
+
 
             response('200') {
                 description "Returning a list of mapping sets"
@@ -44,135 +56,7 @@ api {
             }
         }
 
-        // SUB PATH!
-        path("/mappings") {
-            operation(OperationType.GET, 'getMappings') {
-                description "Return the elements of a mapping set"
-                tags "Mappings"
 
-                parameter(id: String, in: 'path') {
-                    description "The ID of the mapping set"
-                    example "EB7659C5-6AD3-4C1F-8F3F-A5DB1A5E1440"
-                }
-
-                response('200') {
-                    description "Returning a list of mapping set entries"
-                    content('application/json') {
-                        schema(type: Array, arrayType: "Mapping")
-                    }
-                }
-            }
-
-            operation(OperationType.POST, 'createMapping') {
-                description "Create a new entry in a mapping set"
-                tags "Mappings"
-
-                parameter(id: String, in: 'path') {
-                    description "The ID of the mapping set"
-                    example "EB7659C5-6AD3-4C1F-8F3F-A5DB1A5E1440"
-                }
-
-                requestBody {
-                    description "Details of the mapping"
-                    required true
-
-                    content('application/json') {
-                        schema {
-                            //
-                            ref schema: 'Mapping'
-                        }
-
-                    }
-                }
-
-                response('200') {
-                    description "Successfully created"
-                    content('text/plain') {
-                        schema(id: String) {
-                            description "ID of the new entry"
-                        }
-                    }
-                }
-            }
-
-            path("/{mappingId}") {
-                operation(OperationType.GET, 'getMapping') {
-                    description "Return the emapping"
-                    tags "Mappings"
-
-                    parameter(id: String, in: 'path') {
-                        description "The ID of the mapping set"
-                        example "EB7659C5-6AD3-4C1F-8F3F-A5DB1A5E1440"
-                    }
-
-                    parameter(mappingId: String, in: 'path') {
-                        description "The ID of the mapping set element"
-                        example "EB7659C5-6AD3-4C1F-8F3F-A5DB1A5E1440"
-                    }
-
-                    response('200') {
-                        description "Returning a list of vocabularies"
-                        content('application/json') {
-                            schema {
-                                ref schema: 'Mapping'
-                            }
-                        }
-                    }
-                }
-
-                operation(OperationType.PUT, 'putMapping') {
-                    description "Update a mapping"
-                    tags "Mappings"
-
-                    parameter(id: String, in: 'path') {
-                        description "The ID of the vocabulary"
-                        example "EB7659C5-6AD3-4C1F-8F3F-A5DB1A5E1440"
-                    }
-
-                    parameter(mappingId: String, in: 'path') {
-                        description "The ID of the vocabulary element"
-                        example "EB7659C5-6AD3-4C1F-8F3F-A5DB1A5E1440"
-                    }
-
-                    requestBody {
-                        description "Details of the mapping"
-                        required true
-
-                        content('application/json') {
-                            schema {
-                                //
-                                ref schema: 'Mapping'
-                            }
-
-                        }
-                    }
-
-
-                    response('200') {
-                        description "Updated successfully"
-                    }
-                }
-
-                operation(OperationType.DELETE, 'deleteVocabularyEntry') {
-                    description "Delete a vocabulary entry"
-                    tags "Mappings"
-
-                    parameter(id: String, in: 'path') {
-                        description "The ID of the vocabulary"
-                        example "EB7659C5-6AD3-4C1F-8F3F-A5DB1A5E1440"
-                    }
-
-                    parameter(mappingId: String, in: 'path') {
-                        description "The ID of the mapping"
-                        example "EB7659C5-6AD3-4C1F-8F3F-A5DB1A5E1440"
-                    }
-
-                    response('200') {
-                        description "Updated successfully"
-                    }
-                }
-            }
-        }
 
     }
 

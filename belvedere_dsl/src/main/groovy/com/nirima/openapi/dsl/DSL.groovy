@@ -7,6 +7,7 @@ import org.codehaus.groovy.control.CompilerConfiguration
 import org.codehaus.groovy.control.customizers.ImportCustomizer
 import org.codehaus.groovy.runtime.MethodClosure
 import org.codehaus.groovy.tools.shell.IO
+import org.joda.time.DateTime
 
 import java.lang.reflect.Array
 
@@ -76,7 +77,8 @@ public class DSL {
         def config = new CompilerConfiguration();
 
         def icz = new ImportCustomizer();
-        icz.addImports('java.lang.reflect.Array', 'com.nirima.openapi.dsl.OperationType');
+        icz.addImports('java.lang.reflect.Array', 'com.nirima.openapi.dsl.OperationType', 'org.joda.time.DateTime');
+        
 
         config.addCompilationCustomizers(icz);
 

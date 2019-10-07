@@ -17,6 +17,7 @@ import io.swagger.v3.oas.models.servers.Server
 import io.swagger.v3.oas.models.tags.Tag
 import org.apache.commons.beanutils.BeanUtils
 import org.codehaus.groovy.control.CompilerConfiguration
+import org.joda.time.DateTime
 
 import java.lang.reflect.Array
 
@@ -85,11 +86,18 @@ public class DSLItem<T> {
         assert context != null
     }
 
-    public void evaluate(Closure closure1) {
+    void evaluate(Closure closure1) {
         closure1.delegate = this;
         closure1.resolveStrategy = Closure.DELEGATE_FIRST;
         closure1()
     }
+
+    void evaluate(Closure closure1, Object params) {
+        closure1.delegate = this;
+        closure1.resolveStrategy = Closure.DELEGATE_FIRST;
+        closure1(params)
+    }
+
 
     public Object methodMissing(String name, Object args) {
         // here we extract the closure from arguments, etc
@@ -234,7 +242,7 @@ public class DSLOpenAPI extends DSLItem<OpenAPI> {
     }
 
     public DSLPathItem path(String name, Closure c) {
-        DSLPathItem pi = new DSLPathItem(context);
+        DSLPathItem pi = new DSLPathItem(this, name, context);
         pi.process(c);
         self.getPaths().addPathItem(name, pi.self);
         return pi;
@@ -269,8 +277,15 @@ class DSLTagItem extends DSLItem<Tag> {
 @Slf4j
 class DSLPathItem extends DSLItem<PathItem> {
 
-    DSLPathItem(DSLContext context) {
+    private final String     name;
+    private final DSLOpenAPI parent;
+
+    List<DSLOperation> operations = new ArrayList<>();
+
+    DSLPathItem(DSLOpenAPI parent, String name, DSLContext context) {
         super(context, new PathItem());
+        this.name = name;
+        this.parent = parent;
     }
 
     public DSLOperation post(Closure c) {
@@ -280,8 +295,17 @@ class DSLPathItem extends DSLItem<PathItem> {
         return pi;
     }
 
+    public DSLPathItem path(String n2, Closure c) {
+        DSLPathItem pi = new DSLPathItem(parent, this.name + n2, context);
+        pi.process(c);
+        parent.self.getPaths().addPathItem(pi.name, pi.self);
+        return pi;
+    }
+
+
     public DSLOperation operation(OperationType method, String operationId, Closure closure) {
         DSLOperation pi = new DSLOperation(context);
+        operations.add(pi);
         pi.process(closure);
 
         switch (method) {
@@ -306,6 +330,8 @@ class DSLPathItem extends DSLItem<PathItem> {
 
         return pi;
     }
+
+
 }
 
 
@@ -426,10 +452,7 @@ class DSLComponents extends DSLItem<Components> {
             DSLSchema s = new DSLSchema(context);
             s.process(c);
 
-            if (self.getSchemas() == null)
-                self.setSchemas(new HashMap<>());
-
-            self.getSchemas().put(name, s.self);
+            self.addSchemas(name, s.self);
             return s;
         } catch (Exception ex) {
             throw new DSLException("Error processing schema ${name}", ex);
@@ -438,24 +461,163 @@ class DSLComponents extends DSLItem<Components> {
 
     DSLSchema schema(LinkedHashMap items, Closure c) {
 
+        DSLSchema s = DSLSchemaBuilder.forContext(context).build(items, c);
 
-        if (self.getSchemas() == null)
-            self.setSchemas(new HashMap<>());
-
-
-        Class cls = items.values().first();
-
-        DSLSchema s = new DSLSchema(context);
-        s.self = new io.swagger.v3.oas.models.media.StringSchema();
-
-        s.process(c);
-
-        self.getSchemas().put(items.keySet().first(), s.self);
+        self.addSchemas(items.keySet().first(), s.self);
 
         return s;
     }
 
 
+}
+
+@Slf4j
+class DSLSchemaBuilder
+{
+    DSLContext context;
+
+    private DSLSchemaBuilder(context) {
+        this.context = context;
+    }
+
+    static DSLSchemaBuilder forContext(DSLContext context) {
+        return new DSLSchemaBuilder(context);
+    }
+
+    DSLSchema build0(LinkedHashMap items, Closure c) {
+        Class cls = items.values().first();
+
+        DSLSchema s = new DSLSchema(context);
+
+        // Belt and braces
+        if( s.self == null )
+            s.self = new StringSchema();
+        
+        s.process(c);
+
+        return s;
+    }
+
+    DSLSchema build(LinkedHashMap items, Closure c) {
+        def cls = items.values().first();
+        String name = items.keySet().first();
+
+        DSLSchema s = new DSLSchema(context);
+
+        if (cls instanceof Class)
+            s.self = makeSchemaFromClass(cls, items,c );
+        else if (cls instanceof String) {
+            s.self = new Schema();
+            s.self.$ref(cls);
+            context.addReference(s.self, s.self.get$ref());
+        } else {
+            // Assume closure?
+            DSLSchema resultContainer = new DSLSchema(context, new Schema(), cls);
+
+            s.self = resultContainer.self;
+            /*def op = cls()
+
+            def dat = op.item;
+
+            s.item = op.item;
+            s.item.name = name;
+
+             */
+            //return s;
+
+            s.self.name = name;
+            context.seenSchema(name, s.self);
+
+
+            s.process(c);
+
+            self.addProperties(name, s.self);
+            return;
+
+        }
+
+        s.self.name = name;
+        context.seenSchema(name, s.self);
+
+        // Don't believe it's neccessary to process the closure
+        // This is required:
+        // schema(foo:String) { description "foo" }
+        // inside a schema so need to process the parts inside.
+        s.process(c);
+
+        return s;
+    }
+
+    Schema makeSchemaFromClass(Class cls, LinkedHashMap data, Closure closure) {
+        try {
+            if (cls == String.class)
+                return new StringSchema();
+            else if (cls == Date.class)
+                return new DateTimeSchema();
+            else if (cls == BigDecimal.class || cls == Double.class || cls == double.class)
+                return new NumberSchema();
+            else if (cls == Boolean.class || cls == boolean.class)
+                return new BooleanSchema();
+            else if (cls == Integer.class || cls == int.class) {
+                def r = new IntegerSchema();
+                return r;
+            } else if (cls == Long.class || cls == long.class) {
+                def r = new IntegerSchema();
+                r.format = "int64";
+                return r;
+            } else if (cls.isEnum()) {
+                def ss = new StringSchema();
+                cls.getEnumConstants().each() { ss.addEnumItem(it.toString()) }
+                return ss;
+            } else if (cls == Collection.class) {
+                def t = cls.getTypeParameters()[0];
+                println t;
+            } else if (cls.isArray()) {
+                Class clsx = cls.getComponentType()
+                def ars = new ArraySchema();
+
+                ars.items = makeSchemaFromClass(clsx, data, null);
+
+                return ars;
+            } else if (cls == Array) {
+
+                def ars = new ArraySchema();
+                ars.items = new Schema();
+                Object arrayType = data['arrayType'];
+
+                if( arrayType == null ) {
+                    DSLSchema resultContainer = new DSLSchema(context, new Schema(), closure);
+
+                    // This is an implicit object
+                    ars.items = resultContainer.self;
+                    return ars;
+                }
+
+                // arrayType might be a string containing the type, or a
+                // class
+                if (arrayType instanceof Class) {
+                    if (arrayType == String.class)
+                        arrayType = "string";
+
+                    ars.setType(arrayType);
+
+                } else {
+                    ars.items.set$ref(arrayType);
+
+                    // SELF? context.addReference(self, ars.items.get$ref());
+                }
+
+                return ars;
+
+
+            } else {
+                log.error("Unknown parameter type ${cls}");
+                throw new DSLException("Unknown parameter type ${cls}");
+            }
+        } catch (Exception ex) {
+            throw new DSLException("Error trying to make schema from ${cls} : ${data}", ex);
+        }
+    }
 }
 
 
@@ -693,6 +855,8 @@ class DSLSchema
             if (cls == String.class)
                 return new StringSchema();
             else if (cls == Date.class)
+                return new DateSchema();
+            else if( cls == DateTime.class )
                 return new DateTimeSchema();
             else if (cls == BigDecimal.class || cls == Double.class || cls == double.class)
                 return new NumberSchema();
@@ -749,6 +913,42 @@ class DSLSchema
                 return ars;
 
 
+            } else if( cls == Map ) {
+
+                def ars = new MapSchema();
+
+                Object mapType = data['mapType'];
+
+                if( mapType == null ) {
+                    DSLSchema resultContainer = new DSLSchema(context, new Schema(), closure);
+
+                    // This is an implicit object
+                    ars.additionalProperties = resultContainer.self;
+                    return ars;
+                }
+
+                if (mapType instanceof Class) {
+                    if (mapType == String.class)
+                        mapType = "string";
+
+                    def os = new ObjectSchema();
+                    os.setType(mapType);
+
+                    ars.additionalProperties = os;
+                    
+
+                } else {
+
+                    def os = new ObjectSchema();
+                    os.set$ref(mapType);
+
+                    ars.setAdditionalProperties(os);
+
+                    //ars.addionalP items.set$ref(arrayType);
+                    //context.addReference(self, ars.items.get$ref());
+                }
+
+                return ars;
             } else {
                 log.error("Unknown parameter type ${cls}");
                 throw new DSLException("Unknown parameter type ${cls}");
@@ -769,9 +969,9 @@ class DSLMediaType
         super(context, new MediaType());
     }
 
-    DSLSchema schema(Map elements, Closure c) {
-        DSLSchema s = new DSLSchema(context);
-        s.process(c);
+    DSLSchema schema(LinkedHashMap elements, Closure c = {}) {
+
+        DSLSchema s = DSLSchemaBuilder.forContext(context).build(elements, c);
 
         self.setSchema(s.self);
         return s;

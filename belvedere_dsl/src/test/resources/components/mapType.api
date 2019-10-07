@@ -2,17 +2,21 @@ package components
 
 api {
     components {
-        schema('TimeSpan') {
-            required schema('from': String) {
-                pattern '^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$'
-                description "Time from, 24hr format"
-                example "07:00"
+        schema('Thing') {
+            required schema('simple': String)
+
+            schema('tags': Map, mapType:String )
+
+
+            schema('tag2':Map) {
+
+                schema(code:int )
+                schema(text:String)
             }
-            schema('to': String) {
-                pattern '^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$'
-                description "Time from, 24hr format"
-                example "17:30"
-            }
+
+            schema('tag3':Map, mapType:'Thing')
+            
+
         }
     }
 }
