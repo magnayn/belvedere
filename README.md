@@ -6,6 +6,12 @@
 
 ** Please note that this is, very much, a work in progress and not a finished article! **
 
+
+
+
+
+### OpenAPI
+
 OpenAPI is an extremely useful way to document the _specification_ for an API - particularly because it creates an implementation-neutral artifact that documents both the calls and parameters, but also examples and useful documentation.
 
 There are may great generators - doing the work of implementing to spec in a reliable way, and documentation / exploration tools, that allow you to communicate your API to a wider audience.
@@ -117,7 +123,8 @@ path("/pets/{id}") {
                     }
                 }
             }
-        }
+        }   
+}
 ```
 
 ## Including files
@@ -145,3 +152,21 @@ Files can be included through their relative path:
         }
    }
 ```   
+
+### Quickstart:
+
+
+#### Use through docker
+
+* Converting a single, isolated file (not suitable if you use includes)
+
+```bash 
+docker run -i magnayn/belvedere convert - <  ~/myfile.api  > ~/myfile.yaml
+```
+
+* Converting a file
+
+```bash
+docker run -v ~/api:/api -i magnayn/belvedere convert -f /api/crud1.api > ~/api/crud1.yaml
+```
+
