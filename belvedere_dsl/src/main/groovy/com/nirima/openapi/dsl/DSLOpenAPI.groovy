@@ -29,6 +29,7 @@ public class DSLContext {
     private URL baseURL;
     private InputStream inputStream;
 
+    public String[] profiles = [];
 
     public Set references = [];
 
@@ -56,7 +57,7 @@ public class DSLContext {
 
     public void addReference(item, usesName) {
         references.add(usesName);
-        if( parent )
+        if (parent)
             parent.addReference(item, usesName);
     }
 
@@ -97,6 +98,7 @@ public class DSLItem<T> {
         closure1.resolveStrategy = Closure.DELEGATE_FIRST;
         closure1(params)
     }
+
 
 
     public Object methodMissing(String name, Object args) {
@@ -155,7 +157,10 @@ public class DSLItem<T> {
         return dslScript;
     }
 
-    public void process(Closure closure) {
+    void process(Closure closure) {
+        if( closure == null )
+            return;
+        
         try {
             closure.delegate = this;
 
@@ -167,12 +172,37 @@ public class DSLItem<T> {
         }
     }
 
-    public DSLSchema schema(Closure c) {
+    DSLSchema schema(Closure c) {
 
         DSLSchema child = new DSLSchema(context);
         child.process(c);
         self.setSchema(child.self);
         return child;
+    }
+
+    void profile(String name, Closure closure) {
+        if( context.profiles.contains(name)) {
+            process(closure);
+        }
+    }
+
+    // TODO : May be better as profile if:'foo', then:{} else:{} ?
+    void profile(String name, Closure closure, Closure c2) {
+
+
+        if( context.profiles.contains(name)) {
+            process(closure);
+        } else {
+            process(c2);
+        }
+    }
+
+    void profile(Map map) {
+        if( context.profiles.contains(map.get("if"))) {
+            process(map.get("then"));
+        } else {
+            process(map.get("else"));
+        }
     }
 
 
@@ -277,7 +307,7 @@ class DSLTagItem extends DSLItem<Tag> {
 @Slf4j
 class DSLPathItem extends DSLItem<PathItem> {
 
-    private final String     name;
+    private final String name;
     private final DSLOpenAPI parent;
 
     List<DSLOperation> operations = new ArrayList<>();
@@ -417,11 +447,11 @@ class DSLComponents extends DSLItem<Components> {
         try {
             subset = d.runScript();
             subset.accept(childContext);
-            
+
         } catch (Exception ex) {
             throw new DSLException("Error processing included file ${filename}", ex);
         }
-        
+
         def components = subset.self.getComponents();
         if (components == null) {
             log.warn("No components found in ${childContext} ?");
@@ -472,8 +502,7 @@ class DSLComponents extends DSLItem<Components> {
 }
 
 @Slf4j
-class DSLSchemaBuilder
-{
+class DSLSchemaBuilder {
     DSLContext context;
 
     private DSLSchemaBuilder(context) {
@@ -490,9 +519,9 @@ class DSLSchemaBuilder
         DSLSchema s = new DSLSchema(context);
 
         // Belt and braces
-        if( s.self == null )
+        if (s.self == null)
             s.self = new StringSchema();
-        
+
         s.process(c);
 
         return s;
@@ -505,7 +534,7 @@ class DSLSchemaBuilder
         DSLSchema s = new DSLSchema(context);
 
         if (cls instanceof Class)
-            s.self = makeSchemaFromClass(cls, items,c );
+            s.self = makeSchemaFromClass(cls, items, c);
         else if (cls instanceof String) {
             s.self = new Schema();
             s.self.$ref(cls);
@@ -585,7 +614,7 @@ class DSLSchemaBuilder
                 ars.items = new Schema();
                 Object arrayType = data['arrayType'];
 
-                if( arrayType == null ) {
+                if (arrayType == null) {
                     DSLSchema resultContainer = new DSLSchema(context, new Schema(), closure);
 
                     // This is an implicit object
@@ -628,14 +657,14 @@ class DSLOperation extends DSLItem<Operation> {
         super(context, new Operation());
     }
 
-    public DSLRequestBody requestBody(Closure c) {
+    DSLRequestBody requestBody(Closure c) {
         DSLRequestBody pi = new DSLRequestBody(context);
         pi.process(c);
         self.setRequestBody(pi.self);
         return pi;
     }
 
-    public DSLParameter parameter(LinkedHashMap m, Closure c) {
+    DSLParameter parameter(LinkedHashMap m, Closure c) {
         DSLParameter param = new DSLParameter(context);
         param.process(c);
 
@@ -656,7 +685,7 @@ class DSLOperation extends DSLItem<Operation> {
         return param;
     }
 
-    public DSLApiResponse response(String type, Closure c) {
+    DSLApiResponse response(String type, Closure c) {
         DSLApiResponse pi = new DSLApiResponse(context);
         pi.process(c);
 
@@ -667,18 +696,38 @@ class DSLOperation extends DSLItem<Operation> {
         return pi;
     }
 
-    public DSLOperation tags(String tags) {
+    public DSLSecurityRequirement security(String scope, Closure c) {
+        DSLSecurityRequirement securityRequirement = new DSLSecurityRequirement(context);
+        securityRequirement.self.addList(scope);
+        securityRequirement.process(c);
+
+        self.addSecurityItem(securityRequirement.self);
+
+        return securityRequirement
+
+    }
+
+    DSLOperation tags(String tags) {
         self.addTagsItem(tags);
         return this;
     }
 
 
-    public DSLOperation tags(Object[] tags) {
+    DSLOperation tags(Object[] tags) {
         tags.each() {
             self.addTagsItem(it)
         }
         return this;
     }
+
+    void extension(String name, Closure c) {
+        DSLExtension child = new DSLExtension();
+        child.process(c);
+
+        this.self.addExtension('x-' + name, child)
+
+    }
+
 }
 
 @Slf4j
@@ -805,7 +854,7 @@ class DSLSchema
         DSLSchema s = new DSLSchema(context);
 
         if (cls instanceof Class)
-            s.self = makeSchemaFromClass(cls, items,c );
+            s.self = makeSchemaFromClass(cls, items, c);
         else if (cls instanceof String) {
             s.self = new Schema();
             s.self.$ref(cls);
@@ -856,7 +905,7 @@ class DSLSchema
                 return new StringSchema();
             else if (cls == Date.class)
                 return new DateSchema();
-            else if( cls == DateTime.class )
+            else if (cls == DateTime.class)
                 return new DateTimeSchema();
             else if (cls == BigDecimal.class || cls == Double.class || cls == double.class)
                 return new NumberSchema();
@@ -889,7 +938,7 @@ class DSLSchema
                 ars.items = new Schema();
                 Object arrayType = data['arrayType'];
 
-                if( arrayType == null ) {
+                if (arrayType == null) {
                     DSLSchema resultContainer = new DSLSchema(context, new Schema(), closure);
 
                     // This is an implicit object
@@ -904,7 +953,7 @@ class DSLSchema
                         arrayType = "string";
 
                     ars.setType(arrayType);
-                    
+
                 } else {
                     ars.items.set$ref(arrayType);
                     context.addReference(self, ars.items.get$ref());
@@ -913,13 +962,13 @@ class DSLSchema
                 return ars;
 
 
-            } else if( cls == Map ) {
+            } else if (cls == Map) {
 
                 def ars = new MapSchema();
 
                 Object mapType = data['mapType'];
 
-                if( mapType == null ) {
+                if (mapType == null) {
                     DSLSchema resultContainer = new DSLSchema(context, new Schema(), closure);
 
                     // This is an implicit object
@@ -935,7 +984,7 @@ class DSLSchema
                     os.setType(mapType);
 
                     ars.additionalProperties = os;
-                    
+
 
                 } else {
 
@@ -1002,10 +1051,7 @@ public class DSLInfo extends DSLItem<Info> {
         DSLExtension child = new DSLExtension();
         child.process(c);
 
-        if (this.self.getExtensions() == null)
-            this.self.setExtensions(new HashMap<String, Object>());
-
-        this.self.getExtensions().put('x-' + name, child)
+        this.self.addExtension('x-' + name, child)
 
     }
 
@@ -1020,7 +1066,7 @@ public class DSLInfo extends DSLItem<Info> {
 
 public class DSLExtension extends LinkedHashMap {
 
-    public void process(Closure closure) {
+    void process(Closure closure) {
         closure.delegate = this;
 
         closure.resolveStrategy = Closure.DELEGATE_FIRST
@@ -1030,13 +1076,44 @@ public class DSLExtension extends LinkedHashMap {
 
     def propertyMissing(String name, Object value) {
 
+
         this.put(name, value);
 
     }
 
-    public Object methodMissing(String name, Object args) {
+    Object methodMissing(String name, Object args) {
 
-        this.put(name, args);
+        if (args == null)
+            return item;
+
+        if (args.getClass().isArray()) {
+            if (((Object[]) args).length == 1) {
+                // Single element
+                Object arg = args[0];
+
+                if (arg instanceof Closure) {
+                    DSLExtension e = new DSLExtension();
+                    e.process(arg);
+                    this.put(name, e);
+
+                } else {
+                    this.put(name, arg);
+                }
+
+                return item;
+
+            }
+        }
+
+
+        if (arg instanceof Closure) {
+            DSLExtension e = new DSLExtension();
+            e.process(args);
+            this.put(name, e);
+
+        } else {
+            this.put(name, args);
+        }
 
         return item;
     }
@@ -1060,6 +1137,23 @@ class DSLSecurity extends DSLItem<SecurityScheme> {
     public DSLSecurity type(String type) {
         self.setType(SecurityScheme.Type.valueOf(type.toUpperCase()));
         return this;
+    }
+
+    public DSLSecurity setIn(String type) {
+        self.setIn(SecurityScheme.In.valueOf(type.toUpperCase()));
+        return this;
+    }
+
+    void extension(String name, String value) {
+        this.self.addExtension(name, value);
+    }
+
+    void extension(String name, Closure c) {
+        DSLExtension child = new DSLExtension();
+        child.process(c);
+
+        this.self.addExtension(name, child)
+
     }
 }
 

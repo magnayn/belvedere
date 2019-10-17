@@ -15,6 +15,8 @@ class DSLExec {
 
     DSLOpenAPI dslOpenAPI;
     DSLContext context;
+
+
     public DSLExec(URL inputStream) {
         init(new DSLContext(inputStream));
     }
@@ -38,6 +40,11 @@ class DSLExec {
         def ctx = new Object();
         dslOpenAPI.accept(ctx);
         return dslOpenAPI.getTheAPI();
+    }
+
+    public void setProfiles(String[] p) {
+        if( p != null )
+            context.profiles = p;
     }
 
 }
