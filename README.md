@@ -34,6 +34,10 @@ There are some ways of referencing items through YAML file references, but this 
 
 E.g: If an API has a standard response to a request which is '404', then this may be repeated many times over (which makes it harder to make global changes).
 
+- hard if you want multiple variants
+
+E.g: Deploying into a front-end gateway (e.g AWS API Gateway) may require additional extension values in the OpenAPI definition. Ideally we'd like to author these in one place, but we don't particularly want these to be a part of the API definition we give to the public. Also, we may wish to have 'public' and 'private' methods within the same API - authored in the same place, but published as two separate variants.
+
 ### One alternative
 
 One alternative would be to design the API in a specific language (say, Java), then use the tooling (which exists already) to auto-document "what it sees".
