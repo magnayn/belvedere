@@ -6,8 +6,8 @@
 
 ** Please note that this is, very much, a work in progress and not a finished article! **
 
-
-
+## Documentation
+[Index](docs/README.md)
 
 
 ### OpenAPI
