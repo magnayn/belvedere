@@ -6,7 +6,7 @@
     <packaging>pom</packaging>
     <name>Project Belvedere</name>
     
-    <version>0.1.1</version>
+    <version>0.1.2-SNAPSHOT</version>
    
     <modules>
         <module>belvedere_dsl</module>
@@ -17,7 +17,7 @@
         <url>https://github.com/magnayn/belvedere</url>
         <connection>scm:git:ssh://git@github.com/magnayn/belvedere.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/magnayn/belvedere.git</developerConnection>
-      <tag>belvedere-parent-0.1.1</tag>
+      <tag>HEAD</tag>
   </scm>
 
     <build>
