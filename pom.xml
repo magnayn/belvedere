@@ -1,4 +1,4 @@
-<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.nirima.belvedere</groupId>
@@ -6,7 +6,7 @@
     <packaging>pom</packaging>
     <name>Project Belvedere</name>
     
-    <version>0.1.1-SNAPSHOT</version>
+    <version>0.1.1</version>
    
     <modules>
         <module>belvedere_dsl</module>
@@ -17,7 +17,8 @@
         <url>https://github.com/magnayn/belvedere</url>
         <connection>scm:git:ssh://git@github.com/magnayn/belvedere.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/magnayn/belvedere.git</developerConnection>
-    </scm>
+      <tag>belvedere-parent-0.1.1</tag>
+  </scm>
 
     <build>
         <pluginManagement>
