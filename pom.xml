@@ -11,6 +11,7 @@
     <modules>
         <module>belvedere_dsl</module>
         <module>belvedere_cli</module>
+        <module>belvedere_web</module>
     </modules>
 
    <scm>
@@ -36,11 +37,22 @@
     </build>
 
     <distributionManagement>
+        <snapshotRepository>
+            <id>sonatype-nexus-snapshots</id>
+            <name>Sonatype Nexus snapshot repository</name>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
         <repository>
+            <id>nexus-releases</id>
+            <name>Nexus Release Repository</name>
+            <url>http://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+        </repository>
+        <!--<repository>
             <id>github</id>
             <name>GitHub magnayn Apache Maven Packages</name>
             <url>https://maven.pkg.github.com/magnayn/belvedere</url>
-        </repository>
+        </repository> -->
+    
     </distributionManagement>
 
 </project>

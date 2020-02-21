@@ -12,7 +12,8 @@ scan("30 seconds")
 
 
 
-appender("STDOUT", ConsoleAppender) {
+appender("STDERR", ConsoleAppender) {
+    target = System.err
     encoder(PatternLayoutEncoder) {
         pattern = consolePattern;
     }
@@ -20,4 +21,4 @@ appender("STDOUT", ConsoleAppender) {
 
 
 
-root(DEBUG, ["STDOUT", "logfile"])
+root(DEBUG, ["STDERR",])

@@ -638,8 +638,45 @@ class DSLSchemaBuilder {
 
                 return ars;
 
+            }
+            else if (cls == Map) {
 
-            } else {
+                def ars = new MapSchema();
+
+                Object mapType = data['mapType'];
+
+                if (mapType == null) {
+                    DSLSchema resultContainer = new DSLSchema(context, new Schema(), closure);
+
+                    // This is an implicit object
+                    ars.additionalProperties = resultContainer.self;
+                    return ars;
+                }
+
+                if (mapType instanceof Class) {
+                    if (mapType == String.class)
+                        mapType = "string";
+
+                    def os = new ObjectSchema();
+                    os.setType(mapType);
+
+                    ars.additionalProperties = os;
+
+
+                } else {
+
+                    def os = new ObjectSchema();
+                    os.set$ref(mapType);
+
+                    ars.setAdditionalProperties(os);
+
+                    //ars.addionalP items.set$ref(arrayType);
+                    //context.addReference(self, ars.items.get$ref());
+                }
+
+                return ars;
+            }
+            else {
                 log.error("Unknown parameter type ${cls}");
                 throw new DSLException("Unknown parameter type ${cls}");
             }
